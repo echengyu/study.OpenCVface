@@ -13,6 +13,7 @@ import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfInt;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.MatOfRect;
@@ -184,6 +185,7 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 
 		mRgba = inputFrame.rgba();
 		mGray = inputFrame.gray();
+		Point resolutionPoint = new Point(inputFrame.rgba().width(), inputFrame.rgba().height());
 
 		if (mAbsoluteFaceSize == 0) {
 			int height = mGray.rows();
@@ -212,10 +214,10 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 		
 		if(findContoursFUN == true) {
 			findContoursMat = new Mat();
-			Point resolutionPoint = new Point(findContoursMat.width(), findContoursMat.height());
-
+			mRgba.copyTo(findContoursMat);
+			
 			// 二值化
-			Imgproc.cvtColor(inputFrame.rgba(), findContoursMat, Imgproc.COLOR_RGBA2GRAY, 0);
+			Imgproc.cvtColor(findContoursMat, findContoursMat, Imgproc.COLOR_RGBA2GRAY, 0);
 
 			// 高斯濾波器
 			Imgproc.GaussianBlur(findContoursMat, findContoursMat, new org.opencv.core.Size(3, 3), 6);
@@ -238,7 +240,7 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 
 			if(contours.size() != 0 && contours.size() < 500) {
 				// 劃出輪廓線
-				Imgproc.drawContours(inputFrame.rgba(), contours, -1, new Scalar(255, 255, 0, 255), 1);
+				Imgproc.drawContours(mRgba, contours, -1, new Scalar(255, 255, 0, 255), 1);
 
 				//For each contour found
 				approxCurve = new MatOfPoint2f();
@@ -306,7 +308,6 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 	 			Core.putText(mRgba, String.valueOf(contours.size()), new Point(10, resolutionPoint.y - 75), 3, 1, new Scalar(255, 0, 0, 255), 2);
 	 			
 			} else {
-				Core.trace(inputFrame.rgba());
 
 				// 找影像輪廓數量顯示
 				Core.putText(mRgba, String.valueOf(0), new Point(10, resolutionPoint.y - 75), 3, 1, new Scalar(255, 0, 0, 255), 2);
@@ -324,7 +325,7 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 		Rect[] facesArray = faces.toArray();
 		for (int i = 0; i < facesArray.length; i++)
 			Core.rectangle(mRgba, facesArray[i].tl(), facesArray[i].br(), FACE_RECT_COLOR, 3);
-
+		
 		return mRgba;
 	}
 
