@@ -43,6 +43,7 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
     public static final int        NATIVE_DETECTOR     = 1;
     
     private boolean findContoursFUN = false;
+    private boolean findContoursFUNtmp = false;
     
     private Tutorial3View mTutorial3View;
     private List<Size> mResolutionList;
@@ -145,7 +146,7 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 
         mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.fd_activity_surface_view);
         
-//        mOpenCvCameraView.setMaxFrameSize(640, 480);
+        mOpenCvCameraView.setMaxFrameSize(640, 480);
         
         mOpenCvCameraView.setCvCameraViewListener(this);
     }
@@ -208,9 +209,9 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
             Log.e(TAG, "Detection method is not selected!");
         }
 
-        Rect[] facesArray = faces.toArray();
-        for (int i = 0; i < facesArray.length; i++)
-            Core.rectangle(mRgba, facesArray[i].tl(), facesArray[i].br(), FACE_RECT_COLOR, 3);
+//        Rect[] facesArray = faces.toArray();
+//        for (int i = 0; i < facesArray.length; i++)
+//            Core.rectangle(mRgba, facesArray[i].tl(), facesArray[i].br(), FACE_RECT_COLOR, 3);
         
         if(findContoursFUN == true){ 
         	mGray = inputFrame.gray();
@@ -304,12 +305,15 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
     	            // draw enclosing rectangle (all same color, but you could use variable i to make them unique)
 //    	            Core.rectangle(mRgba, new Point(rect.x,rect.y), new Point(rect.x+rect.width,rect.y+rect.height), new Scalar(0, 255, 0, 255), 2); 
     	        }
-    	        
     		}
     		Core.putText(mRgba, String.valueOf(contours.size()), new Point(10, resolutionPoint.y - 75), 3, 1, new Scalar(255, 0, 0, 255), 2);
         }else{
-//        	Core.trace(inputFrame.rgba());
+        	Core.trace(inputFrame.rgba());
         }
+        
+        Rect[] facesArray = faces.toArray();
+        for (int i = 0; i < facesArray.length; i++)
+            Core.rectangle(mRgba, facesArray[i].tl(), facesArray[i].br(), FACE_RECT_COLOR, 3);
         
         return mRgba;
     }
@@ -317,10 +321,10 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         Log.i(TAG, "called onCreateOptionsMenu");
-        mItemFace50 = menu.add("Face size 50%");
-        mItemFace40 = menu.add("Face size 40%");
-        mItemFace30 = menu.add("Face size 30%");
-        mItemFace20 = menu.add("Face size 20%");
+//        mItemFace50 = menu.add("Face size 50%");
+//        mItemFace40 = menu.add("Face size 40%");
+//        mItemFace30 = menu.add("Face size 30%");
+//        mItemFace20 = menu.add("Face size 20%");
         mItemType   = menu.add(mDetectorName[mDetectorType]);
         mItemFindContours = menu.add("FindContours");
         return true;
@@ -341,11 +345,16 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
             int tmpDetectorType = (mDetectorType + 1) % mDetectorName.length;
             item.setTitle(mDetectorName[tmpDetectorType]);
             setDetectorType(tmpDetectorType);
-            findContoursFUN = true;
-//            findContoursFUN = false;
         }else if (item == mItemFindContours) {
-//        	findContoursFUN = true;
-        	findContoursFUN = false;
+        	findContoursFUN = true;
+        	if(findContoursFUN != findContoursFUNtmp){
+        		findContoursFUNtmp = findContoursFUN;
+        		Toast.makeText(this, "true", Toast.LENGTH_SHORT).show();
+        	}else{
+        		findContoursFUN = false;
+        		findContoursFUNtmp = findContoursFUN;
+        		Toast.makeText(this, "false", Toast.LENGTH_SHORT).show();
+        	}     	
         }
         return true;
     }
