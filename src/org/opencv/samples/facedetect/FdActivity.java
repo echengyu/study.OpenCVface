@@ -39,7 +39,7 @@ import android.widget.Toast;
 public class FdActivity extends Activity implements CvCameraViewListener2 {
 
 	private static final String    TAG                 = "OCVSample::Activity";
-	private static final Scalar    FACE_RECT_COLOR     = new Scalar(0, 255, 0, 255);
+	private static final Scalar    FACE_RECT_COLOR     = new Scalar(255, 0, 255, 255);
 	public static final int        JAVA_DETECTOR       = 0;
 	public static final int        NATIVE_DETECTOR     = 1;
 
@@ -74,6 +74,7 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 	private Mat hierarchy;
 	private MatOfPoint2f approxCurve;
 	private Mat findContoursMat;
+	private Point resolutionPoint;
 
 	private BaseLoaderCallback  mLoaderCallback = new BaseLoaderCallback(this) {
 		@Override
@@ -87,11 +88,11 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 
 				try {
 					// load cascade file from application resources
-//                        InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
-					InputStream is = getResources().openRawResource(R.raw.haarcascade_fullbody);
+                    InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
+//					InputStream is = getResources().openRawResource(R.raw.haarcascade_fullbody);
 					File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
-//                        mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
-					mCascadeFile = new File(cascadeDir, "haarcascade_fullbody.xml");
+                    mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
+//					mCascadeFile = new File(cascadeDir, "haarcascade_fullbody.xml");
 					FileOutputStream os = new FileOutputStream(mCascadeFile);
 
 					byte[] buffer = new byte[4096];
@@ -148,9 +149,9 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 
 		mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.fd_activity_surface_view);
 
-		mOpenCvCameraView.setMaxFrameSize(640, 480);
-
-		mOpenCvCameraView.setCvCameraViewListener(this);
+//		mOpenCvCameraView.setMaxFrameSize(640, 480);
+//
+//		mOpenCvCameraView.setCvCameraViewListener(this);
 	}
 
 	@Override
@@ -163,7 +164,14 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 	@Override
 	public void onResume() {
 		super.onResume();
+		
+		mOpenCvCameraView.setMaxFrameSize(640, 480);
+
+		mOpenCvCameraView.setCvCameraViewListener(this);
+		
 		OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_3, this, mLoaderCallback);
+		
+		
 	}
 
 	public void onDestroy() {
@@ -185,7 +193,7 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 
 		mRgba = inputFrame.rgba();
 		mGray = inputFrame.gray();
-		Point resolutionPoint = new Point(inputFrame.rgba().width(), inputFrame.rgba().height());
+		resolutionPoint = new Point(inputFrame.rgba().width(), inputFrame.rgba().height());
 
 		if (mAbsoluteFaceSize == 0) {
 			int height = mGray.rows();
@@ -207,124 +215,21 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 		} else {
 			Log.e(TAG, "Detection method is not selected!");
 		}
-
-//        Rect[] facesArray = faces.toArray();
-//        for (int i = 0; i < facesArray.length; i++)
-//            Core.rectangle(mRgba, facesArray[i].tl(), facesArray[i].br(), FACE_RECT_COLOR, 3);
 		
 		if(findContoursFUN == true) {
-			findContoursMat = new Mat();
-			mRgba.copyTo(findContoursMat);
-			
-			// 二值化
-			Imgproc.cvtColor(findContoursMat, findContoursMat, Imgproc.COLOR_RGBA2GRAY, 0);
-
-			// 高斯濾波器
-			Imgproc.GaussianBlur(findContoursMat, findContoursMat, new org.opencv.core.Size(3, 3), 6);
-
-			// 邊緣偵測
-			Imgproc.Canny(findContoursMat, findContoursMat, 360, 180);
-
-			// 蝕刻
-			Imgproc.erode(findContoursMat, findContoursMat, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(1, 1)));
-
-			// 膨脹
-			Imgproc.dilate(findContoursMat, findContoursMat, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(4, 4)));
-
-			contours = new ArrayList<MatOfPoint>();
-			hierarchy = new Mat();
-
-			// 找影像輪廓
-			Imgproc.findContours(findContoursMat, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE, new Point(0, 0));
-			hierarchy.release();
-
-			if(contours.size() != 0 && contours.size() < 500) {
-				// 劃出輪廓線
-				Imgproc.drawContours(mRgba, contours, -1, new Scalar(255, 255, 0, 255), 1);
-
-				//For each contour found
-				approxCurve = new MatOfPoint2f();
-				for (int i=0; i<contours.size(); i++) {
-					//Convert contours(i) from MatOfPoint to MatOfPoint2f
-					MatOfPoint2f contour2f = new MatOfPoint2f( contours.get(i).toArray() );
-
-					//Processing on mMOP2f1 which is in type MatOfPoint2f
-					double approxDistance = Imgproc.arcLength(contour2f, true)*0.02;
-
-					Imgproc.approxPolyDP(contour2f, approxCurve, approxDistance, true);
-
-					//Convert back to MatOfPoint
-					MatOfPoint points = new MatOfPoint( approxCurve.toArray() );
-
-					// Get bounding rect of contour
-					Rect rect = Imgproc.boundingRect(points);
-
-					if(i==0) {
-
-						// 質心
-						// http://monkeycoding.com/?p=617
-						Moments mu = Imgproc.moments(contours.get(i), false);
-						Point momentsPoint = new Point((int)(mu.get_m10() / mu.get_m00()), (int)(mu.get_m01() / mu.get_m00()));
-//    	            	Core.circle(mRgba, momentsPoint, 10, new Scalar(255, 255, 0, 255), -1);
-						Core.rectangle(mRgba, new Point(momentsPoint.x-10, momentsPoint.y-10),
-						               new Point(momentsPoint.x+10, momentsPoint.y+10), new Scalar(0, 255, 255, 255), 2);
-
-						// 面積
-						// http://monkeycoding.com/?p=617
-						double contourArea = Imgproc.contourArea(contour2f, false);
-						Core.putText(mRgba, String.valueOf(contourArea),
-						             new Point(10, resolutionPoint.y - 45), 3, 1, new Scalar(0, 255, 128, 255), 2);
-
-						// 周長
-						// http://monkeycoding.com/?p=617
-						double arcLength = Imgproc.arcLength(contour2f, true);
-						Core.putText(mRgba, String.valueOf(arcLength),
-						             new Point(10, resolutionPoint.y - 15), 3, 1, new Scalar(0, 255, 128, 255), 2);
-
-//    		            // 凸殼
-//    		            // http://monkeycoding.com/?p=612
-//    		            MatOfInt mOi= new MatOfInt();
-//    		            Imgproc.convexHull(contours.get(i), mOi);
-//                        Point convexHullPoint = contours.get(i).toList().get(mOi.toList().get(i));
-//                        Core.circle(mRgba, convexHullPoint, 10, new Scalar(255, 0, 0, 255), -1);
-
-					} else {
-						Moments mu = Imgproc.moments(contours.get(i), false);
-						Point momentsPoint = new Point((int)(mu.get_m10() / mu.get_m00()), (int)(mu.get_m01() / mu.get_m00()));
-//    	            	Core.circle(mRgba, momentsPoint, 10, new Scalar(255, 255, 0, 255), -1);
-						Core.rectangle(mRgba, new Point(momentsPoint.x-10, momentsPoint.y-10),
-						               new Point(momentsPoint.x+10, momentsPoint.y+10), new Scalar(0, 255, 0, 255), 2);
-					}
-
-//    	            Point centerPoint = new Point(rect.x+(rect.width)/2, rect.y+(rect.height)/2);
-//    		        Core.rectangle(mRgba, new Point(centerPoint.x-10, centerPoint.y-10),
-//    		        		new Point(centerPoint.x+10, centerPoint.y+10), new Scalar(0, 255, 0, 255), 2);
-
-					// draw enclosing rectangle (all same color, but you could use variable i to make them unique)
-//    	            Core.rectangle(mRgba, new Point(rect.x,rect.y), new Point(rect.x+rect.width,rect.y+rect.height), new Scalar(0, 255, 0, 255), 2);
-				}
-
-				// 找影像輪廓數量顯示
-	 			Core.putText(mRgba, String.valueOf(contours.size()), new Point(10, resolutionPoint.y - 75), 3, 1, new Scalar(255, 0, 0, 255), 2);
-	 			
-			} else {
-
-				// 找影像輪廓數量顯示
-				Core.putText(mRgba, String.valueOf(0), new Point(10, resolutionPoint.y - 75), 3, 1, new Scalar(255, 0, 0, 255), 2);
-
-				// 面積
-				Core.putText(mRgba, String.valueOf(0),
-				             new Point(10, resolutionPoint.y - 45), 3, 1, new Scalar(0, 255, 128, 255), 2);
-
-				// 周長
-				Core.putText(mRgba, String.valueOf(0),
-				             new Point(10, resolutionPoint.y - 15), 3, 1, new Scalar(0, 255, 128, 255), 2);
-			}
+			setFindContoursFUN();
 		}
-
+		
 		Rect[] facesArray = faces.toArray();
-		for (int i = 0; i < facesArray.length; i++)
+		for (int i = 0; i < facesArray.length; i++){
 			Core.rectangle(mRgba, facesArray[i].tl(), facesArray[i].br(), FACE_RECT_COLOR, 3);
+			
+			Point facePutText = new Point(
+					Math.abs(facesArray[i].tl().x + facesArray[i].br().x)/2, 
+					Math.abs(facesArray[i].tl().y + facesArray[i].br().y)/2);
+
+			Core.putText(mRgba, ""+i, facePutText, 2, 1, new Scalar(0, 255, 128, 255), 1);
+		}
 		
 		return mRgba;
 	}
@@ -386,6 +291,116 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 				Log.i(TAG, "Cascade detector enabled");
 				mNativeDetector.stop();
 			}
+		}
+	}
+	
+	private void setFindContoursFUN(){
+		findContoursMat = new Mat();
+		mRgba.copyTo(findContoursMat);
+		
+		// 二值化
+		Imgproc.cvtColor(findContoursMat, findContoursMat, Imgproc.COLOR_RGBA2GRAY, 0);
+
+		// 高斯濾波器
+		Imgproc.GaussianBlur(findContoursMat, findContoursMat, new org.opencv.core.Size(3, 3), 6);
+
+		// 邊緣偵測
+		Imgproc.Canny(findContoursMat, findContoursMat, 360, 180);
+
+		// 蝕刻
+		Imgproc.erode(findContoursMat, findContoursMat, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(1, 1)));
+
+		// 膨脹
+		Imgproc.dilate(findContoursMat, findContoursMat, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(4, 4)));
+
+		contours = new ArrayList<MatOfPoint>();
+		hierarchy = new Mat();
+
+		// 找影像輪廓
+		Imgproc.findContours(findContoursMat, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE, new Point(0, 0));
+		hierarchy.release();
+
+		if(contours.size() != 0 && contours.size() < 500) {
+			// 劃出輪廓線
+			Imgproc.drawContours(mRgba, contours, -1, new Scalar(255, 255, 0, 255), 1);
+
+			//For each contour found
+			approxCurve = new MatOfPoint2f();
+			for (int i=0; i<contours.size(); i++) {
+				//Convert contours(i) from MatOfPoint to MatOfPoint2f
+				MatOfPoint2f contour2f = new MatOfPoint2f( contours.get(i).toArray() );
+
+				//Processing on mMOP2f1 which is in type MatOfPoint2f
+				double approxDistance = Imgproc.arcLength(contour2f, true)*0.02;
+
+				Imgproc.approxPolyDP(contour2f, approxCurve, approxDistance, true);
+
+				//Convert back to MatOfPoint
+				MatOfPoint points = new MatOfPoint( approxCurve.toArray() );
+
+				// Get bounding rect of contour
+				Rect rect = Imgproc.boundingRect(points);
+
+				if(i==0) {
+
+					// 質心
+					// http://monkeycoding.com/?p=617
+					Moments mu = Imgproc.moments(contours.get(i), false);
+					Point momentsPoint = new Point((int)(mu.get_m10() / mu.get_m00()), (int)(mu.get_m01() / mu.get_m00()));
+//	            	Core.circle(mRgba, momentsPoint, 10, new Scalar(255, 255, 0, 255), -1);
+					Core.rectangle(mRgba, new Point(momentsPoint.x-10, momentsPoint.y-10),
+					               new Point(momentsPoint.x+10, momentsPoint.y+10), new Scalar(0, 255, 255, 255), 2);
+
+					// 面積
+					// http://monkeycoding.com/?p=617
+					double contourArea = Imgproc.contourArea(contour2f, false);
+					Core.putText(mRgba, String.valueOf(contourArea),
+					             new Point(10, resolutionPoint.y - 45), 3, 1, new Scalar(0, 255, 128, 255), 2);
+
+					// 周長
+					// http://monkeycoding.com/?p=617
+					double arcLength = Imgproc.arcLength(contour2f, true);
+					Core.putText(mRgba, String.valueOf(arcLength),
+					             new Point(10, resolutionPoint.y - 15), 3, 1, new Scalar(0, 255, 128, 255), 2);
+
+//		            // 凸殼
+//		            // http://monkeycoding.com/?p=612
+//		            MatOfInt mOi= new MatOfInt();
+//		            Imgproc.convexHull(contours.get(i), mOi);
+//                    Point convexHullPoint = contours.get(i).toList().get(mOi.toList().get(i));
+//                    Core.circle(mRgba, convexHullPoint, 10, new Scalar(255, 0, 0, 255), -1);
+
+				} else {
+					Moments mu = Imgproc.moments(contours.get(i), false);
+					Point momentsPoint = new Point((int)(mu.get_m10() / mu.get_m00()), (int)(mu.get_m01() / mu.get_m00()));
+//	            	Core.circle(mRgba, momentsPoint, 10, new Scalar(255, 255, 0, 255), -1);
+					Core.rectangle(mRgba, new Point(momentsPoint.x-10, momentsPoint.y-10),
+					               new Point(momentsPoint.x+10, momentsPoint.y+10), new Scalar(0, 255, 0, 255), 2);
+				}
+
+//	            Point centerPoint = new Point(rect.x+(rect.width)/2, rect.y+(rect.height)/2);
+//		        Core.rectangle(mRgba, new Point(centerPoint.x-10, centerPoint.y-10),
+//		        		new Point(centerPoint.x+10, centerPoint.y+10), new Scalar(0, 255, 0, 255), 2);
+
+				// draw enclosing rectangle (all same color, but you could use variable i to make them unique)
+//	            Core.rectangle(mRgba, new Point(rect.x,rect.y), new Point(rect.x+rect.width,rect.y+rect.height), new Scalar(0, 255, 0, 255), 2);
+			}
+
+			// 找影像輪廓數量顯示
+ 			Core.putText(mRgba, String.valueOf(contours.size()), new Point(10, resolutionPoint.y - 75), 3, 1, new Scalar(255, 0, 0, 255), 2);
+ 			
+		} else {
+
+			// 找影像輪廓數量顯示
+			Core.putText(mRgba, String.valueOf(0), new Point(10, resolutionPoint.y - 75), 3, 1, new Scalar(255, 0, 0, 255), 2);
+
+			// 面積
+			Core.putText(mRgba, String.valueOf(0),
+			             new Point(10, resolutionPoint.y - 45), 3, 1, new Scalar(0, 255, 128, 255), 2);
+
+			// 周長
+			Core.putText(mRgba, String.valueOf(0),
+			             new Point(10, resolutionPoint.y - 15), 3, 1, new Scalar(0, 255, 128, 255), 2);
 		}
 	}
 }
