@@ -347,9 +347,9 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 					// http://monkeycoding.com/?p=617
 					Moments mu = Imgproc.moments(contours.get(i), false);
 					Point momentsPoint = new Point((int)(mu.get_m10() / mu.get_m00()), (int)(mu.get_m01() / mu.get_m00()));
-//	            	Core.circle(mRgba, momentsPoint, 10, new Scalar(255, 255, 0, 255), -1);
-					Core.rectangle(mRgba, new Point(momentsPoint.x-10, momentsPoint.y-10),
-					               new Point(momentsPoint.x+10, momentsPoint.y+10), new Scalar(0, 255, 255, 255), 2);
+	            	Core.circle(mRgba, momentsPoint, 3, new Scalar(255, 255, 0, 255), -1);
+//					Core.rectangle(mRgba, new Point(momentsPoint.x-10, momentsPoint.y-10),
+//					               new Point(momentsPoint.x+10, momentsPoint.y+10), new Scalar(0, 255, 255, 255), 2);
 
 					// 面積
 					// http://monkeycoding.com/?p=617
@@ -373,17 +373,13 @@ public class FdActivity extends Activity implements CvCameraViewListener2 {
 				} else {
 					Moments mu = Imgproc.moments(contours.get(i), false);
 					Point momentsPoint = new Point((int)(mu.get_m10() / mu.get_m00()), (int)(mu.get_m01() / mu.get_m00()));
-//	            	Core.circle(mRgba, momentsPoint, 10, new Scalar(255, 255, 0, 255), -1);
-					Core.rectangle(mRgba, new Point(momentsPoint.x-10, momentsPoint.y-10),
-					               new Point(momentsPoint.x+10, momentsPoint.y+10), new Scalar(0, 255, 0, 255), 2);
+	            	Core.circle(mRgba, momentsPoint, 3, new Scalar(255, 255, 0, 255), -1);
+//					Core.rectangle(mRgba, new Point(momentsPoint.x-10, momentsPoint.y-10),
+//					               new Point(momentsPoint.x+10, momentsPoint.y+10), new Scalar(0, 255, 0, 255), 2);
 				}
 
-//	            Point centerPoint = new Point(rect.x+(rect.width)/2, rect.y+(rect.height)/2);
-//		        Core.rectangle(mRgba, new Point(centerPoint.x-10, centerPoint.y-10),
-//		        		new Point(centerPoint.x+10, centerPoint.y+10), new Scalar(0, 255, 0, 255), 2);
-
 				// draw enclosing rectangle (all same color, but you could use variable i to make them unique)
-//	            Core.rectangle(mRgba, new Point(rect.x,rect.y), new Point(rect.x+rect.width,rect.y+rect.height), new Scalar(0, 255, 0, 255), 2);
+	            Core.rectangle(mRgba, new Point(rect.x,rect.y), new Point(rect.x+rect.width,rect.y+rect.height), new Scalar(0, 255, 0, 255), 2);
 			}
 
 			// 找影像輪廓數量顯示
