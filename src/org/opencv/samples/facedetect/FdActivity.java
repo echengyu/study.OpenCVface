@@ -20,6 +20,7 @@ import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
+import org.opencv.core.RotatedRect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
@@ -251,7 +252,7 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		mItemFindContours = menu.add("FindContours");
 		
 		// 顏色
-		mItemColor = menu.add("Color");
+//		mItemColor = menu.add("Color");
 		
 		// 螢幕解析度
         mResolutionMenu = menu.addSubMenu("Resolution");
@@ -265,7 +266,6 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
                     Integer.valueOf(element.width).toString() + "x" + Integer.valueOf(element.height).toString());
             idx++;
         }
-        
 		return true;
 	}
 
@@ -324,6 +324,7 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		return true;
 	}
 	
+	// 臉部
 	private Mat setFaceFUN(Mat mGrayOrg, Mat mRgba){
 		faceMat = new Mat();
 		mGrayOrg.copyTo(faceMat);
@@ -359,6 +360,7 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		return mRgba;
 	}
 	
+	// 輪廓
 	private Mat setFindContoursFUN(Mat mRgbaOrg, Mat mRgba){
 		findContoursMat = new Mat();
 		mRgbaOrg.copyTo(findContoursMat);
@@ -406,7 +408,18 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 
 				// Get bounding rect of contour
 				Rect rect = Imgproc.boundingRect(points);
+				
+				RotatedRect box = Imgproc.minAreaRect(contour2f);
+				
+				Point[] pointsList = new Point[4];;
 
+				box.points(pointsList);
+				
+				
+			    for(int r = 0; r<4; ++r){
+//			        Core.line(mRgba, pointsList[r], pointsList[(r+1)%4], new Scalar(127, 255, 255, 255), 2);
+			    }
+			
 				if(i==0) {
 
 //					// 質心
@@ -470,6 +483,7 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		return mRgba;
 	}
 	
+	// 顏色
 	private Mat setColorFUN(Mat mRgbaOrg, Mat mRgba){
 		colorMat = new Mat();
 		mRgbaOrg.copyTo(colorMat);
