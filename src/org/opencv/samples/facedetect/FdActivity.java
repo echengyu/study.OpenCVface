@@ -46,13 +46,17 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 	private Mat mRgba;
 	private Mat mGray;
 	private ScanTool mOpenCvCameraView;
+	private Mat mRgbaOrg;
+	private Mat mGrayOrg;
 	
 	// 人臉
+	private Mat faceMat;
 	private File mCascadeFile;
 	private CascadeClassifier mJavaDetector;
 	private DetectionBasedTracker mNativeDetector;
 	private float mRelativeFaceSize = 0.2f;
-	private int mAbsoluteFaceSize = 0;
+	private int mAbsoluteFaceSizeMin = 0;
+	private int mAbsoluteFaceSizeMax = 0;
 	private MenuItem mItemFace;
 	private boolean faceFUN = false;
 	private boolean faceFUNtmp = false;
@@ -68,8 +72,17 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 	private boolean findContoursFUNtmp = false;
 	
 	// 色彩
+	private Mat colorMat;
+	private Mat mSpectrum;
+    private ColorBlobDetector mDetector;   
+    private Size SPECTRUM_SIZE;
+    private Scalar CONTOUR_COLOR;
 	private Scalar mBlobColorRgba;
 	private Scalar mBlobColorHsv;
+	private MenuItem mItemColor;
+    private boolean mIsColorSelected = false;
+    private boolean colorFUN = false;
+	private boolean colorFUNtmp = false;
 	
 	// 解析度
 	private boolean onCameraViewStarted = true;
@@ -90,10 +103,12 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 
 				try {
 					// load cascade file from application resources
-                    InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
+//                    InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
+                    InputStream is = getResources().openRawResource(R.raw.haarcascade_frontalface_alt2);
 //					InputStream is = getResources().openRawResource(R.raw.haarcascade_fullbody);
 					File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
-                    mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
+//                    mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
+                    mCascadeFile = new File(cascadeDir, "haarcascade_frontalface_alt2.xml");
 //					mCascadeFile = new File(cascadeDir, "haarcascade_fullbody.xml");
 					FileOutputStream os = new FileOutputStream(mCascadeFile);
 
@@ -120,6 +135,7 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 					e.printStackTrace();
 					Log.e(TAG, "Failed to load cascade. Exception thrown: " + e);
 				}
+				
 				mOpenCvCameraView.enableView();
 				mOpenCvCameraView.setOnTouchListener(FdActivity.this);
 			}
@@ -165,7 +181,15 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 
 	public void onCameraViewStarted(int width, int height) {
 		mGray = new Mat();
-		mRgba = new Mat();
+		mRgba = new Mat(height, width, CvType.CV_8UC4);
+		
+		// 色彩
+        mDetector = new ColorBlobDetector();
+        mSpectrum = new Mat();
+        mBlobColorRgba = new Scalar(255);
+        mBlobColorHsv = new Scalar(255);
+        SPECTRUM_SIZE = new Size(200, 64);
+        CONTOUR_COLOR = new Scalar(255,0,0,255);
 		
 		// 螢幕解析度設定
 		if(onCameraViewStarted == true){
@@ -189,45 +213,30 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		mRgba.release();
 	}
 
-	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
-
-		mRgba = inputFrame.rgba();
-		mGray = inputFrame.gray();
-		resolutionPoint = new Point(inputFrame.rgba().width(), inputFrame.rgba().height());
-
-		if (mAbsoluteFaceSize == 0) {
-			int height = mGray.rows();
-			if (Math.round(height * mRelativeFaceSize) > 0) {
-				mAbsoluteFaceSize = Math.round(height * mRelativeFaceSize);
-				Log.e("mAbsoluteFaceSize", String.valueOf(mAbsoluteFaceSize));
-			}
-			mNativeDetector.setMinFaceSize(mAbsoluteFaceSize);
-		}
-
-		MatOfRect faces = new MatOfRect();
-		
+	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {		
+		mRgbaOrg = new Mat();
+		mGrayOrg = new Mat();
+		mRgbaOrg = inputFrame.rgba();
+		mGrayOrg = inputFrame.gray();
+		mRgbaOrg.copyTo(mRgba);
+		mGrayOrg.copyTo(mGray);
+		resolutionPoint = new Point(mRgbaOrg.width(), mRgbaOrg.height());
+				
 		// 臉部
-		if(faceFUN == true | true){
-			mJavaDetector.detectMultiScale(mGray, faces, 1.1, 6, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
-	                new Size(mAbsoluteFaceSize, mAbsoluteFaceSize), new Size(200, 200));
+		if(faceFUN){
+			setFaceFUN(mGrayOrg, mRgba);
 		}
 		
 		// 輪廓
-		if(findContoursFUN == true) {
-			setFindContoursFUN();
+		if(findContoursFUN){
+			setFindContoursFUN(mRgbaOrg, mRgba);
 		}
 		
-		Rect[] facesArray = faces.toArray();
-		for (int i = 0; i < facesArray.length; i++){
-			Core.rectangle(mRgba, facesArray[i].tl(), facesArray[i].br(), new Scalar(255, 0, 255, 255), 3);
-			
-//			Point facePutText = new Point(
-//					Math.abs(facesArray[i].tl().x + facesArray[i].br().x)/2, 
-//					Math.abs(facesArray[i].tl().y + facesArray[i].br().y)/2);
-//
-//			Core.putText(mRgba, ""+i, facePutText, 2, 1, new Scalar(0, 255, 128, 255), 1);
+		// 顏色
+		if(colorFUN){
+			setColorFUN(mRgbaOrg, mRgba);
 		}
-		
+       
 		return mRgba;
 	}
 
@@ -240,6 +249,9 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		
 		// 輪廓
 		mItemFindContours = menu.add("FindContours");
+		
+		// 顏色
+		mItemColor = menu.add("Color");
 		
 		// 螢幕解析度
         mResolutionMenu = menu.addSubMenu("Resolution");
@@ -296,12 +308,60 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 			}
 		}
 		
+		// 顏色
+		if (item == mItemColor) {
+			colorFUN = true;
+			if(colorFUN != colorFUNtmp) {
+				colorFUNtmp = colorFUN;
+				Toast.makeText(this, "colorFUN: true", Toast.LENGTH_SHORT).show();
+			} else {
+				colorFUN = false;
+				colorFUNtmp = findContoursFUN;
+				Toast.makeText(this, "colorFUN: false", Toast.LENGTH_SHORT).show();
+			}
+		}
+		
 		return true;
 	}
 	
-	private void setFindContoursFUN(){
+	private Mat setFaceFUN(Mat mGrayOrg, Mat mRgba){
+		faceMat = new Mat();
+		mGrayOrg.copyTo(faceMat);
+		
+		if (mAbsoluteFaceSizeMin == 0) {
+			int height = faceMat.rows();
+			if (Math.round(height * mRelativeFaceSize) > 0) {
+				mAbsoluteFaceSizeMin = Math.round(height * mRelativeFaceSize);
+				mAbsoluteFaceSizeMax = Math.round(height * mRelativeFaceSize * 2);
+				if(mAbsoluteFaceSizeMax > height){
+					mAbsoluteFaceSizeMax = height;
+				}
+			}
+			mNativeDetector.setMinFaceSize(mAbsoluteFaceSizeMin);
+		}
+		MatOfRect faces = new MatOfRect();
+		
+//		if (mNativeDetector != null)
+//            mNativeDetector.detect(mGray, faces);
+		
+		mJavaDetector.detectMultiScale(faceMat, faces, 1.1, 6, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
+                new Size(mAbsoluteFaceSizeMin, mAbsoluteFaceSizeMin), new Size(mAbsoluteFaceSizeMax, mAbsoluteFaceSizeMax));
+		
+		Rect[] facesArray = faces.toArray();
+		for (int i = 0; i < facesArray.length; i++){
+			Core.rectangle(mRgba, facesArray[i].tl(), facesArray[i].br(), new Scalar(255, 0, 255, 255), 3);
+			
+//			Point facePutText = new Point(
+//					Math.abs(facesArray[i].tl().x + facesArray[i].br().x)/2, 
+//					Math.abs(facesArray[i].tl().y + facesArray[i].br().y)/2);
+//			Core.putText(mRgba, ""+i, facePutText, 2, 1, new Scalar(0, 255, 128, 255), 1);
+		}		
+		return mRgba;
+	}
+	
+	private Mat setFindContoursFUN(Mat mRgbaOrg, Mat mRgba){
 		findContoursMat = new Mat();
-		mRgba.copyTo(findContoursMat);
+		mRgbaOrg.copyTo(findContoursMat);
 		
 		// 二值化
 		Imgproc.cvtColor(findContoursMat, findContoursMat, Imgproc.COLOR_RGBA2GRAY, 0);
@@ -318,7 +378,7 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 
 		// 膨脹
 		Imgproc.dilate(findContoursMat, findContoursMat, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(4, 4)));
-
+				
 		contours = new ArrayList<MatOfPoint>();
 		hierarchy = new Mat();
 
@@ -407,6 +467,27 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 //			Core.putText(mRgba, String.valueOf(0),
 //			             new Point(10, resolutionPoint.y - 15), 3, 1, new Scalar(0, 255, 128, 255), 2);
 		}
+		return mRgba;
+	}
+	
+	private Mat setColorFUN(Mat mRgbaOrg, Mat mRgba){
+		colorMat = new Mat();
+		mRgbaOrg.copyTo(colorMat);
+		
+        if (mIsColorSelected) {
+            mDetector.process(mRgba);
+            List<MatOfPoint> contours = mDetector.getContours();
+            Log.e(TAG, "Contours count: " + contours.size());
+            Imgproc.drawContours(mRgba, contours, -1, CONTOUR_COLOR);
+
+            Mat colorLabel = mRgba.submat(4, 68, 4, 68);
+            colorLabel.setTo(mBlobColorRgba);
+
+            Mat spectrumLabel = mRgba.submat(4, 4 + mSpectrum.rows(), 70, 70 + mSpectrum.cols());
+            mSpectrum.copyTo(spectrumLabel);
+        }
+        
+		return mRgba;
 	}
 	
 	@Override
@@ -449,10 +530,16 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
         Log.i(TAG, "Touched rgba color: (" + mBlobColorRgba.val[0] + ", " + mBlobColorRgba.val[1] +
                 ", " + mBlobColorRgba.val[2] + ", " + mBlobColorRgba.val[3] + ")");
         
-//        Toast.makeText(this, "Touch image coordinates: (" + x + ", " + y + ")" + "Touched rgba color: (" + mBlobColorRgba.val[0] + ", " + mBlobColorRgba.val[1] +
-//                ", " + mBlobColorRgba.val[2] + ", " + mBlobColorRgba.val[3] + ")", Toast.LENGTH_SHORT).show();
-        
-		return false;
+        mDetector.setHsvColor(mBlobColorHsv);
+
+        Imgproc.resize(mDetector.getSpectrum(), mSpectrum, SPECTRUM_SIZE);
+
+        mIsColorSelected = true;
+
+        touchedRegionRgba.release();
+        touchedRegionHsv.release();       
+
+		return false; // don't need subsequent touch events
 	}
 	
     private Scalar converScalarHsv2Rgba(Scalar hsvColor) {
