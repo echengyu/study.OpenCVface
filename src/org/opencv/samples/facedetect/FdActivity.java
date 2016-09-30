@@ -41,42 +41,37 @@ import android.view.WindowManager;
 import android.widget.Toast;
 
 public class FdActivity extends Activity implements OnTouchListener, CvCameraViewListener2 {
-
-	private static final String    TAG                 = "OCVSample::Activity";
-	private static final Scalar    FACE_RECT_COLOR     = new Scalar(255, 0, 255, 255);
-	public static final int        JAVA_DETECTOR       = 0;
-	public static final int        NATIVE_DETECTOR     = 1;
 	
+	private static final String TAG = "OCVSample::Activity";
+	private Mat mRgba;
+	private Mat mGray;
+	private ScanTool mOpenCvCameraView;
+	
+	// 人臉
+	private File mCascadeFile;
+	private CascadeClassifier mJavaDetector;
+	private DetectionBasedTracker mNativeDetector;
+	private float mRelativeFaceSize = 0.2f;
+	private int mAbsoluteFaceSize = 0;
+	private MenuItem mItemFace;
 	private boolean faceFUN = false;
 	private boolean faceFUNtmp = false;
+
+	// 輪廓
+	private Mat	hierarchy;
+	private Mat findContoursMat;
+	private MatOfPoint2f approxCurve;
+	private Point resolutionPoint;
+	private List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+	private MenuItem mItemFindContours;
 	private boolean findContoursFUN = false;
 	private boolean findContoursFUNtmp = false;
 	
-	private MenuItem               mItemFace;
-	private MenuItem               mItemFindContours;
-
-	private Mat                    mRgba;
-	private Mat                    mGray;
-	private File                   mCascadeFile;
-	private CascadeClassifier      mJavaDetector;
-	private DetectionBasedTracker  mNativeDetector;
-
-	private String[]               mDetectorName;
-
-	private float                  mRelativeFaceSize   = 0.2f;
-	private int                    mAbsoluteFaceSize   = 0;
-
-	private ScanTool   			   mOpenCvCameraView;
-
-	private List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
-	private Mat hierarchy;
-	private MatOfPoint2f approxCurve;
-	private Mat findContoursMat;
-	private Point resolutionPoint;
+	// 色彩
+	private Scalar mBlobColorRgba;
+	private Scalar mBlobColorHsv;
 	
-	private Scalar               mBlobColorRgba;
-	private Scalar               mBlobColorHsv;
-	
+	// 解析度
 	private boolean onCameraViewStarted = true;
 	private List<android.hardware.Camera.Size> mResolutionList;
 	private android.hardware.Camera.Size resolution = null;
@@ -223,7 +218,7 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		
 		Rect[] facesArray = faces.toArray();
 		for (int i = 0; i < facesArray.length; i++){
-			Core.rectangle(mRgba, facesArray[i].tl(), facesArray[i].br(), FACE_RECT_COLOR, 3);
+			Core.rectangle(mRgba, facesArray[i].tl(), facesArray[i].br(), new Scalar(255, 0, 255, 255), 3);
 			
 //			Point facePutText = new Point(
 //					Math.abs(facesArray[i].tl().x + facesArray[i].br().x)/2, 
@@ -453,10 +448,8 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
         Log.i(TAG, "Touched rgba color: (" + mBlobColorRgba.val[0] + ", " + mBlobColorRgba.val[1] +
                 ", " + mBlobColorRgba.val[2] + ", " + mBlobColorRgba.val[3] + ")");
         
-        
-        
-        Toast.makeText(this, "Touch image coordinates: (" + x + ", " + y + ")" + "Touched rgba color: (" + mBlobColorRgba.val[0] + ", " + mBlobColorRgba.val[1] +
-                ", " + mBlobColorRgba.val[2] + ", " + mBlobColorRgba.val[3] + ")", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(this, "Touch image coordinates: (" + x + ", " + y + ")" + "Touched rgba color: (" + mBlobColorRgba.val[0] + ", " + mBlobColorRgba.val[1] +
+//                ", " + mBlobColorRgba.val[2] + ", " + mBlobColorRgba.val[3] + ")", Toast.LENGTH_SHORT).show();
         
 		return false;
 	}
