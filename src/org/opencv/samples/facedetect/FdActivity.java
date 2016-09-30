@@ -199,6 +199,7 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 			int height = mGray.rows();
 			if (Math.round(height * mRelativeFaceSize) > 0) {
 				mAbsoluteFaceSize = Math.round(height * mRelativeFaceSize);
+				Log.e("mAbsoluteFaceSize", String.valueOf(mAbsoluteFaceSize));
 			}
 			mNativeDetector.setMinFaceSize(mAbsoluteFaceSize);
 		}
@@ -206,9 +207,9 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		MatOfRect faces = new MatOfRect();
 		
 		// 臉部
-		if(faceFUN == true){
-			mJavaDetector.detectMultiScale(mGray, faces, 1.1, 2, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
-	                new Size(mAbsoluteFaceSize, mAbsoluteFaceSize), new Size());
+		if(faceFUN == true | true){
+			mJavaDetector.detectMultiScale(mGray, faces, 1.1, 6, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
+	                new Size(mAbsoluteFaceSize, mAbsoluteFaceSize), new Size(200, 200));
 		}
 		
 		// 輪廓
@@ -313,10 +314,10 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		Imgproc.Canny(findContoursMat, findContoursMat, 360, 180);
 
 		// 蝕刻
-//		Imgproc.erode(findContoursMat, findContoursMat, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(1, 1)));
+		Imgproc.erode(findContoursMat, findContoursMat, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(1, 1)));
 
 		// 膨脹
-//		Imgproc.dilate(findContoursMat, findContoursMat, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(4, 4)));
+		Imgproc.dilate(findContoursMat, findContoursMat, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(4, 4)));
 
 		contours = new ArrayList<MatOfPoint>();
 		hierarchy = new Mat();
