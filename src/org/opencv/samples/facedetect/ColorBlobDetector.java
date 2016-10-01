@@ -68,16 +68,22 @@ public class ColorBlobDetector {
     }
 
     public void process(Mat rgbaImage) {
+    	
+    	// 高斯图像金字塔
         Imgproc.pyrDown(rgbaImage, mPyrDownMat);
         Imgproc.pyrDown(mPyrDownMat, mPyrDownMat);
-
+        
+        // 色彩轉換
         Imgproc.cvtColor(mPyrDownMat, mHsvMat, Imgproc.COLOR_RGB2HSV_FULL);
-
+        
+        // 分離顏色
         Core.inRange(mHsvMat, mLowerBound, mUpperBound, mMask);
+        
+        // 膨脹
         Imgproc.dilate(mMask, mDilatedMask, new Mat());
 
+        // 找影像輪廓
         List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
-
         Imgproc.findContours(mDilatedMask, contours, mHierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
 
         // Find max contour area
