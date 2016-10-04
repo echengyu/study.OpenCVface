@@ -20,6 +20,7 @@ import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
+import org.opencv.core.RotatedRect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
@@ -266,7 +267,7 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		mItemFindContours = menu.add("FindContours");
 		
 		// 顏色
-		mItemColor = menu.add("Color");
+//		mItemColor = menu.add("Color");
 		
 		// 螢幕解析度
         mResolutionMenu = menu.addSubMenu("Resolution");
@@ -414,8 +415,6 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 	private Mat setFindContoursFUN(Mat mRgbaOrg, Mat mRgba){
 		findContoursMat = new Mat();
 		mRgbaOrg.copyTo(findContoursMat);
-//		Mat cannyMat = new Mat();
-//		mRgba.copyTo(cannyMat);
 		
 		//色彩空間轉換(灰階)
 		Imgproc.cvtColor(findContoursMat, findContoursMat, Imgproc.COLOR_RGBA2GRAY, 4);
@@ -471,13 +470,13 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 //			        Core.line(mRgba, pointsList[r], pointsList[(r+1)%4], new Scalar(127, 255, 255, 255), 2);
 //			    }
 				
-//				// 輪廓取矩形可自動調整大小
-//				RotatedRect rect2 = Imgproc.minAreaRect(contour2f);
-//				Point[] vertices = new Point[4];
-//				rect2.points(vertices);
-//				for (int j = 0; j < 4; j++) {					
-//					Core.line(mRgba, vertices[j], vertices[(j + 1) % 4], new Scalar(0, 255, 0), 2);					
-//				}
+				// 輪廓取矩形可自動調整大小
+				RotatedRect rect2 = Imgproc.minAreaRect(contour2f);
+				Point[] vertices = new Point[4];
+				rect2.points(vertices);
+				for (int j = 0; j < 4; j++) {					
+					Core.line(mRgba, vertices[j], vertices[(j + 1) % 4], new Scalar(0, 255, 0, 255), 2);					
+				}
 			
 				if(i==0) {
 
@@ -518,7 +517,7 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 				}
 
 				// draw enclosing rectangle (all same color, but you could use variable i to make them unique)
-	            Core.rectangle(mRgba, new Point(rect.x,rect.y), new Point(rect.x+rect.width,rect.y+rect.height), new Scalar(0, 255, 0, 255), 2);
+//	            Core.rectangle(mRgba, new Point(rect.x,rect.y), new Point(rect.x+rect.width,rect.y+rect.height), new Scalar(0, 255, 0, 255), 2);
 			}
 
 			// 找影像輪廓數量顯示
