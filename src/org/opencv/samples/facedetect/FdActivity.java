@@ -20,7 +20,6 @@ import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
-import org.opencv.core.RotatedRect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
@@ -31,9 +30,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.text.InputType;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -43,7 +40,6 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnTouchListener;
 import android.view.WindowManager;
-import android.widget.EditText;
 import android.widget.SeekBar;
 import android.widget.Toast;
 
@@ -61,7 +57,8 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 	private File mCascadeFile;
 	private CascadeClassifier mJavaDetector;
 	private DetectionBasedTracker mNativeDetector;
-	private float mRelativeFaceSize = 0.2f;
+	private float mRelativeFaceSizeMin = 0.1f;
+	private float mRelativeFaceSizeMax = 0.9f;
 	private int mAbsoluteFaceSizeMin = 0;
 	private int mAbsoluteFaceSizeMax = 0;
 	private MenuItem mItemFace;
@@ -75,6 +72,8 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 	private Point resolutionPoint;
 	private List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
 	private MenuItem mItemFindContours;
+	private final int HYSTERESIS_THRESHOLD1 = 128;
+	private final int HYSTERESIS_THRESHOLD2 = 255;
 	private boolean findContoursFUN = false;
 	private boolean findContoursFUNtmp = false;
 	
@@ -101,6 +100,7 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 	Point mIsColorSelectedPoint;
 	
 	int tmpEdit = 1;
+	int tmpA = 0;
 	
 	private BaseLoaderCallback  mLoaderCallback = new BaseLoaderCallback(this) {
 		@Override
@@ -114,12 +114,12 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 
 				try {
 					// load cascade file from application resources
-//                    InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
-                    InputStream is = getResources().openRawResource(R.raw.haarcascade_frontalface_alt2);
+                    InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
+//                    InputStream is = getResources().openRawResource(R.raw.haarcascade_frontalface_alt2);
 //					InputStream is = getResources().openRawResource(R.raw.haarcascade_fullbody);
 					File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
-//                    mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
-                    mCascadeFile = new File(cascadeDir, "haarcascade_frontalface_alt2.xml");
+                    mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
+//                    mCascadeFile = new File(cascadeDir, "haarcascade_frontalface_alt2.xml");
 //					mCascadeFile = new File(cascadeDir, "haarcascade_fullbody.xml");
 					FileOutputStream os = new FileOutputStream(mCascadeFile);
 
@@ -266,7 +266,7 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		mItemFindContours = menu.add("FindContours");
 		
 		// 顏色
-//		mItemColor = menu.add("Color");
+		mItemColor = menu.add("Color");
 		
 		// 螢幕解析度
         mResolutionMenu = menu.addSubMenu("Resolution");
@@ -338,7 +338,7 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 			editDialog.setCancelable(true); 
 			
 			final SeekBar seekBar = new SeekBar(FdActivity.this);
-			seekBar.setMax(800);
+			seekBar.setMax(100);
 			editDialog.setView(seekBar);
 			seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
 
@@ -355,6 +355,8 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 	            @Override
 	            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {                
 	            	tmpEdit = progress;
+	            	Core.putText(mRgba, String.valueOf(progress),
+	       	             new Point(10, resolutionPoint.y - 45), 3, 1, new Scalar(0, 255, 128, 255), 2);
 	            }
 		    });
 
@@ -374,18 +376,19 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 	private Mat setFaceFUN(Mat mGrayOrg, Mat mRgba){
 		faceMat = new Mat();
 		mGrayOrg.copyTo(faceMat);
-		
+
 		if (mAbsoluteFaceSizeMin == 0) {
 			int height = faceMat.rows();
-			if (Math.round(height * mRelativeFaceSize) > 0) {
-				mAbsoluteFaceSizeMin = Math.round(height * mRelativeFaceSize);
-				mAbsoluteFaceSizeMax = Math.round(height * mRelativeFaceSize * 2);
+			if (Math.round(height * mRelativeFaceSizeMin) > 0) {
+				mAbsoluteFaceSizeMin = Math.round(height * mRelativeFaceSizeMin);
+				mAbsoluteFaceSizeMax = Math.round(height * mRelativeFaceSizeMax);
 				if(mAbsoluteFaceSizeMax > height){
 					mAbsoluteFaceSizeMax = height;
 				}
 			}
 			mNativeDetector.setMinFaceSize(mAbsoluteFaceSizeMin);
 		}
+		
 		MatOfRect faces = new MatOfRect();
 		
 //		if (mNativeDetector != null)
@@ -402,7 +405,8 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 //					Math.abs(facesArray[i].tl().x + facesArray[i].br().x)/2, 
 //					Math.abs(facesArray[i].tl().y + facesArray[i].br().y)/2);
 //			Core.putText(mRgba, ""+i, facePutText, 2, 1, new Scalar(0, 255, 128, 255), 1);
-		}		
+		}
+
 		return mRgba;
 	}
 	
@@ -410,24 +414,26 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 	private Mat setFindContoursFUN(Mat mRgbaOrg, Mat mRgba){
 		findContoursMat = new Mat();
 		mRgbaOrg.copyTo(findContoursMat);
+//		Mat cannyMat = new Mat();
+//		mRgba.copyTo(cannyMat);
 		
+		//色彩空間轉換(灰階)
+		Imgproc.cvtColor(findContoursMat, findContoursMat, Imgproc.COLOR_RGBA2GRAY, 4);
+
 		// 二值化
-		Imgproc.cvtColor(findContoursMat, findContoursMat, Imgproc.COLOR_RGBA2GRAY, 0);
-//		Imgproc.threshold(findContoursMat, findContoursMat, 180, 255, Imgproc.THRESH_BINARY);
-
-		// 高斯濾波器
-		Imgproc.GaussianBlur(findContoursMat, findContoursMat, new org.opencv.core.Size(3, 3), 6);
-
-		// 邊緣偵測
-		Imgproc.Canny(findContoursMat, findContoursMat, 360, 180);
-
-		// 蝕刻
-		Imgproc.erode(findContoursMat, findContoursMat, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(1, 1)));
-
-		// 膨脹
-		Imgproc.dilate(findContoursMat, findContoursMat, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(4, 4)));
+		Imgproc.threshold(findContoursMat, findContoursMat, 100, 255, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C | Imgproc.THRESH_BINARY);
 		
-//		findContoursMat.copyTo(mRgba);
+		//影像金字塔(縮小)
+		Imgproc.pyrDown(findContoursMat, findContoursMat, new Size(mRgba.cols()/2, mRgba.rows()/2));	
+		
+		// 蝕刻
+		Imgproc.erode(findContoursMat, findContoursMat, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(7, 7)));
+		
+		//邊緣偵測
+		Imgproc.Canny(findContoursMat, findContoursMat, HYSTERESIS_THRESHOLD1, HYSTERESIS_THRESHOLD2, 3, false);
+		
+		//影像金字塔(放大)
+		Imgproc.pyrUp(findContoursMat, findContoursMat, new Size(findContoursMat.cols()*2, findContoursMat.rows()*2));
 		
 		contours = new ArrayList<MatOfPoint>();
 		hierarchy = new Mat();
@@ -456,17 +462,22 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 
 				// Get bounding rect of contour
 				Rect rect = Imgproc.boundingRect(points);
-				
-				RotatedRect box = Imgproc.minAreaRect(contour2f);
-				
-				Point[] pointsList = new Point[4];;
 
-				box.points(pointsList);
-				
-				
-			    for(int r = 0; r<4; ++r){
+//				// 輪廓取矩形可自動調整大小
+//				RotatedRect box = Imgproc.minAreaRect(contour2f);
+//				Point[] pointsList = new Point[4];;
+//				box.points(pointsList);			
+//			    for(int r = 0; r<4; ++r){
 //			        Core.line(mRgba, pointsList[r], pointsList[(r+1)%4], new Scalar(127, 255, 255, 255), 2);
-			    }
+//			    }
+				
+//				// 輪廓取矩形可自動調整大小
+//				RotatedRect rect2 = Imgproc.minAreaRect(contour2f);
+//				Point[] vertices = new Point[4];
+//				rect2.points(vertices);
+//				for (int j = 0; j < 4; j++) {					
+//					Core.line(mRgba, vertices[j], vertices[(j + 1) % 4], new Scalar(0, 255, 0), 2);					
+//				}
 			
 				if(i==0) {
 
