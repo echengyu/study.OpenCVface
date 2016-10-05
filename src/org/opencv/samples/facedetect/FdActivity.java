@@ -106,54 +106,50 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		@Override
 		public void onManagerConnected(int status) {
 			switch (status) {
-			case LoaderCallbackInterface.SUCCESS: {
-				Log.i(TAG, "OpenCV loaded successfully");
-
-				// Load native library after(!) OpenCV initialization
-				System.loadLibrary("detection_based_tracker");
-
-				try {
-					// load cascade file from application resources
-                    InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
-//                    InputStream is = getResources().openRawResource(R.raw.haarcascade_frontalface_alt2);
-//					InputStream is = getResources().openRawResource(R.raw.haarcascade_fullbody);
-					File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
-                    mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
-//                    mCascadeFile = new File(cascadeDir, "haarcascade_frontalface_alt2.xml");
-//					mCascadeFile = new File(cascadeDir, "haarcascade_fullbody.xml");
-					FileOutputStream os = new FileOutputStream(mCascadeFile);
-
-					byte[] buffer = new byte[4096];
-					int bytesRead;
-					while ((bytesRead = is.read(buffer)) != -1) {
-						os.write(buffer, 0, bytesRead);
+				case LoaderCallbackInterface.SUCCESS: {
+					Log.i(TAG, "OpenCV loaded successfully");
+	
+					// Load native library after(!) OpenCV initialization
+					System.loadLibrary("detection_based_tracker");
+	
+					try {
+						// load cascade file from application resources
+	                    InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
+						File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
+	                    mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
+						FileOutputStream os = new FileOutputStream(mCascadeFile);
+	
+						byte[] buffer = new byte[4096];
+						int bytesRead;
+						while ((bytesRead = is.read(buffer)) != -1) {
+							os.write(buffer, 0, bytesRead);
+						}
+						is.close();
+						os.close();
+	
+						mJavaDetector = new CascadeClassifier(mCascadeFile.getAbsolutePath());
+						if (mJavaDetector.empty()) {
+							Log.e(TAG, "Failed to load cascade classifier");
+							mJavaDetector = null;
+						} else
+							Log.i(TAG, "Loaded cascade classifier from " + mCascadeFile.getAbsolutePath());
+	
+						mNativeDetector = new DetectionBasedTracker(mCascadeFile.getAbsolutePath(), 0);
+	
+						cascadeDir.delete();
+	
+					} catch (IOException e) {
+						e.printStackTrace();
+						Log.e(TAG, "Failed to load cascade. Exception thrown: " + e);
 					}
-					is.close();
-					os.close();
-
-					mJavaDetector = new CascadeClassifier(mCascadeFile.getAbsolutePath());
-					if (mJavaDetector.empty()) {
-						Log.e(TAG, "Failed to load cascade classifier");
-						mJavaDetector = null;
-					} else
-						Log.i(TAG, "Loaded cascade classifier from " + mCascadeFile.getAbsolutePath());
-
-					mNativeDetector = new DetectionBasedTracker(mCascadeFile.getAbsolutePath(), 0);
-
-					cascadeDir.delete();
-
-				} catch (IOException e) {
-					e.printStackTrace();
-					Log.e(TAG, "Failed to load cascade. Exception thrown: " + e);
+					
+					mOpenCvCameraView.enableView();
+					mOpenCvCameraView.setOnTouchListener(FdActivity.this);
 				}
-				
-				mOpenCvCameraView.enableView();
-				mOpenCvCameraView.setOnTouchListener(FdActivity.this);
-			}
-			break;
-			default: {
-				super.onManagerConnected(status);
-			}
+				break;
+				default: {
+					super.onManagerConnected(status);
+				}
 			break;
 			}
 		}
@@ -247,11 +243,7 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		if(colorFUN){
 			setColorFUN(mRgbaOrg, mRgba);
 		}
-		
-//		if(mIsColorSelected){
-//			Core.circle(mRgba, mIsColorSelectedPoint, 3, new Scalar(255, 255, 0, 255), -1);
-//		}
-       
+		      
 		return mRgba;
 	}
 
@@ -266,7 +258,7 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		mItemFindContours = menu.add("FindContours");
 		
 		// 顏色
-//		mItemColor = menu.add("Color");
+		mItemColor = menu.add("Color");
 		
 		// 螢幕解析度
         mResolutionMenu = menu.addSubMenu("Resolution");
@@ -324,49 +316,49 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		
 		// 顏色
 		if (item == mItemColor) {
-//			colorFUN = true;
-//			if(colorFUN != colorFUNtmp) {
-//				colorFUNtmp = colorFUN;
-//				Toast.makeText(this, "colorFUN: true", Toast.LENGTH_SHORT).show();
-//			} else {
-//				colorFUN = false;
-//				colorFUNtmp = findContoursFUN;
-//				Toast.makeText(this, "colorFUN: false", Toast.LENGTH_SHORT).show();
-//			}
+			colorFUN = true;
+			if(colorFUN != colorFUNtmp) {
+				colorFUNtmp = colorFUN;
+				Toast.makeText(this, "colorFUN: true", Toast.LENGTH_SHORT).show();
+			} else {
+				colorFUN = false;
+				colorFUNtmp = findContoursFUN;
+				Toast.makeText(this, "colorFUN: false", Toast.LENGTH_SHORT).show();
+			}
 			
-			AlertDialog.Builder editDialog = new AlertDialog.Builder(FdActivity.this);
-			editDialog.setCancelable(true); 
-			
-			final SeekBar seekBar = new SeekBar(FdActivity.this);
-			seekBar.setMax(5);
-			editDialog.setView(seekBar);
-			seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-
-		        @Override
-		        public void onStopTrackingTouch(SeekBar seekBar) {
-		        	Toast.makeText(FdActivity.this, String.valueOf(tmpEdit), Toast.LENGTH_SHORT).show();
-		        }
-
-		        @Override
-		        public void onStartTrackingTouch(SeekBar seekBar) {
-
-		        }
-
-	            @Override
-	            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {                
-	            	tmpEdit = progress;
-	            	Core.putText(mRgba, String.valueOf(progress),
-	       	             new Point(10, resolutionPoint.y - 45), 3, 1, new Scalar(0, 255, 128, 255), 2);
-	            }
-		    });
-
-			editDialog.setNegativeButton("Exit", new DialogInterface.OnClickListener() {
-				// do something when the button is clicked
-				public void onClick(DialogInterface arg0, int arg1) {
-					//...
-				}
-			});
-			editDialog.show();
+//			AlertDialog.Builder editDialog = new AlertDialog.Builder(FdActivity.this);
+//			editDialog.setCancelable(true); 
+//			
+//			final SeekBar seekBar = new SeekBar(FdActivity.this);
+//			seekBar.setMax(5);
+//			editDialog.setView(seekBar);
+//			seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+//
+//		        @Override
+//		        public void onStopTrackingTouch(SeekBar seekBar) {
+//		        	Toast.makeText(FdActivity.this, String.valueOf(tmpEdit), Toast.LENGTH_SHORT).show();
+//		        }
+//
+//		        @Override
+//		        public void onStartTrackingTouch(SeekBar seekBar) {
+//
+//		        }
+//
+//	            @Override
+//	            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {                
+//	            	tmpEdit = progress;
+//	            	Core.putText(mRgba, String.valueOf(progress),
+//	       	             new Point(10, resolutionPoint.y - 45), 3, 1, new Scalar(0, 255, 128, 255), 2);
+//	            }
+//		    });
+//
+//			editDialog.setNegativeButton("Exit", new DialogInterface.OnClickListener() {
+//				// do something when the button is clicked
+//				public void onClick(DialogInterface arg0, int arg1) {
+//					//...
+//				}
+//			});
+//			editDialog.show();
 			
 		}
 		return true;
@@ -570,33 +562,21 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 	// 點擊螢幕觸發事件
 	@Override
 	public boolean onTouch(View v, MotionEvent event) {
-		
-		
-//		Log.e("onTouch.####", "####");
-
-		
+	
 		// 取得影像	
         int cols = mRgba.cols();
         int rows = mRgba.rows();
-//        Log.e("onTouch.mRgba", "("+String.valueOf(cols)+", "+String.valueOf(rows)+")");
 
         // 偏移量	
         int xOffset = (mOpenCvCameraView.getWidth() - cols) / 2;
         int yOffset = (mOpenCvCameraView.getHeight() - rows) / 2;
-        
-//        Log.e("onTouch.mOpenCvCameraView", "("+String.valueOf(mOpenCvCameraView.getWidth())+", "+String.valueOf(mOpenCvCameraView.getHeight())+")");
-//        Log.e("onTouch.Offset", "("+String.valueOf(xOffset)+", "+String.valueOf(yOffset)+")");
 
         int x = (int)event.getX() - xOffset;
         int y = (int)event.getY() - yOffset;
         
-//        Log.e("onTouch.event", "("+String.valueOf((int)event.getX())+", "+String.valueOf((int)event.getY())+")");
-//        Log.e("onTouch.xy", "("+String.valueOf(x)+", "+String.valueOf(y)+")");
-        
         mIsColorSelectedPoint = new Point(x, y);
-//        mIsColorSelectedPoint = new Point((int)event.getX(), (int)event.getY());
 
-//        Log.i(TAG, "Touch image coordinates: (" + x + ", " + y + ")");
+        Log.e(TAG, "Touch image coordinates: (" + x + ", " + y + ")");
         
         if ((x < 0) || (y < 0) || (x > cols) || (y > rows)) return false;
 
@@ -621,7 +601,7 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
         
         mBlobColorRgba = converScalarHsv2Rgba(mBlobColorHsv);
         
-        Log.i(TAG, "Touched rgba color: (" + mBlobColorRgba.val[0] + ", " + mBlobColorRgba.val[1] +
+        Log.e(TAG, "Touched rgba color: (" + mBlobColorRgba.val[0] + ", " + mBlobColorRgba.val[1] +
                 ", " + mBlobColorRgba.val[2] + ", " + mBlobColorRgba.val[3] + ")");
         
         mDetector.setHsvColor(mBlobColorHsv);
