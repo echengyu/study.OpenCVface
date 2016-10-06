@@ -20,7 +20,6 @@ import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
-import org.opencv.core.RotatedRect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
@@ -28,9 +27,7 @@ import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.objdetect.CascadeClassifier;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -41,7 +38,6 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnTouchListener;
 import android.view.WindowManager;
-import android.widget.SeekBar;
 import android.widget.Toast;
 
 public class FdActivity extends Activity implements OnTouchListener, CvCameraViewListener2 {
@@ -61,7 +57,6 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 	private int mAbsoluteFaceSizeMax = 0;
 	private MenuItem mItemFace;
 	private boolean faceFUN = false;
-	private boolean faceFUNtmp = false;
 
 	// 輪廓
 	private MatOfPoint2f approxCurve;
@@ -70,7 +65,6 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 	private final int HYSTERESIS_THRESHOLD1 = 128;
 	private final int HYSTERESIS_THRESHOLD2 = 255;
 	private boolean findContoursFUN = false;
-	private boolean findContoursFUNtmp = false;
 	
 	// 色彩
 	private Mat colorMat;
@@ -83,7 +77,9 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 	private MenuItem mItemColor;
     private boolean mIsColorSelected = false;
     private boolean colorFUN = false;
-	private boolean colorFUNtmp = false;
+    
+    // 閃光燈
+    private MenuItem mItemCameraFlashLight;
 	
 	// 解析度
 	private boolean onCameraViewStarted = true;
@@ -236,7 +232,6 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		if(colorFUN && mIsColorSelected) {
 			setColorFUN(mRgba, mRgba);
 		}
-		
 		return mRgba;
 	}
 	
@@ -429,6 +424,9 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		// 顏色
 //		mItemColor = menu.add("Color");
 		
+		// 閃光燈
+		mItemCameraFlashLight = menu.add("FlashLight");
+		
 		// 螢幕解析度
         mResolutionMenu = menu.addSubMenu("Resolution");
         mResolutionList = mOpenCvCameraView.getResolutionList();
@@ -458,40 +456,34 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		}
 		
 		// 臉部辨識
-		if (item == mItemFace) {
-			faceFUN = true;
-			if(faceFUN != faceFUNtmp) {
-				faceFUNtmp = faceFUN;
+		if (item == mItemFace) {			
+			if(!faceFUN) {
+				faceFUN = true;
 				Toast.makeText(this, "Face: true", Toast.LENGTH_SHORT).show();
 			} else {
 				faceFUN = false;
-				faceFUNtmp = faceFUN;
 				Toast.makeText(this, "Face: false", Toast.LENGTH_SHORT).show();
 			}
 		}
 		
 		// 輪廓辨識
 		if (item == mItemFindContours) {
-			findContoursFUN = true;
-			if(findContoursFUN != findContoursFUNtmp) {
-				findContoursFUNtmp = findContoursFUN;
+			if(!findContoursFUN) {
+				findContoursFUN = true;
 				Toast.makeText(this, "FindContours: true", Toast.LENGTH_SHORT).show();
 			} else {
 				findContoursFUN = false;
-				findContoursFUNtmp = findContoursFUN;
 				Toast.makeText(this, "FindContours: false", Toast.LENGTH_SHORT).show();
 			}
 		}
 		
 		// 顏色辨識
 		if (item == mItemColor) {
-			colorFUN = true;
-			if(colorFUN != colorFUNtmp) {
-				colorFUNtmp = colorFUN;
+			if(!colorFUN) {
+				colorFUN = true;
 				Toast.makeText(this, "colorFUN: true", Toast.LENGTH_SHORT).show();
 			} else {
 				colorFUN = false;
-				colorFUNtmp = findContoursFUN;
 				Toast.makeText(this, "colorFUN: false", Toast.LENGTH_SHORT).show();
 			}
 			
@@ -528,8 +520,14 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 //				}
 //			});
 //			editDialog.show();
-			
+
 		}
+		
+		// 閃光燈
+		if (item == mItemCameraFlashLight) {
+			mOpenCvCameraView.setCameraFlashLight();
+		}
+		
 		return true;
 	}
 	

@@ -15,6 +15,7 @@ import org.opencv.imgproc.Imgproc;
 
 import android.content.Context;
 import android.hardware.Camera;
+import android.hardware.Camera.Parameters;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.Size;
 import android.util.AttributeSet;
@@ -24,6 +25,7 @@ public class ScanTool extends JavaCameraView implements PictureCallback {
 	
     private static final String TAG = "Sample::ScanTool";
     private String mPictureFileName;
+    private boolean isFlashLightON = false;
 
     public ScanTool(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -46,7 +48,7 @@ public class ScanTool extends JavaCameraView implements PictureCallback {
         params.setColorEffect(effect);
         mCamera.setParameters(params);
     }
-
+    
     public List<Size> getResolutionList() {
         return mCamera.getParameters().getSupportedPreviewSizes();
     }
@@ -90,5 +92,54 @@ public class ScanTool extends JavaCameraView implements PictureCallback {
         } catch (java.io.IOException e) {
             Log.e("PictureDemo", "Exception in photoCallback", e);
         }
+    }
+    
+    // 閃光燈
+    public void setCameraFlashLight(boolean isFlashLightON) {
+	    Camera  camera = mCamera;
+	    if (camera != null) {
+	    Parameters params = camera.getParameters();
+	
+	    if (params != null) {
+	        if (isFlashLightON) {
+	            isFlashLightON = false;
+	            params.setFlashMode(Parameters.FLASH_MODE_OFF);
+	            camera.setParameters(params);
+	            camera.startPreview();
+	        } else {
+	            isFlashLightON = true;
+	            params.setFlashMode(Parameters.FLASH_MODE_TORCH);
+	            camera.setParameters(params);
+	            camera.startPreview();
+	            }
+	        }
+	    }
+    }
+    
+    // 閃光燈
+    public void setCameraFlashLight() {
+	    Camera  camera = mCamera;
+	    if (camera != null) {
+	    Parameters params = camera.getParameters();
+	
+	    if (params != null) {
+	        if (isFlashLightON) {
+	            isFlashLightON = false;
+	            params.setFlashMode(Parameters.FLASH_MODE_OFF);
+	            camera.setParameters(params);
+	            camera.startPreview();
+	        } else {
+	            isFlashLightON = true;
+	            params.setFlashMode(Parameters.FLASH_MODE_TORCH);
+	            camera.setParameters(params);
+	            camera.startPreview();
+	            }
+	        }
+	    }
+    }
+    
+    // 閃光燈
+    public boolean getCameraFlashLight() {
+        return isFlashLightON;
     }
 }
