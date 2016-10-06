@@ -216,7 +216,11 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {		
 		mRgba = inputFrame.rgba();
 		mGray = inputFrame.gray();
-		resolutionPoint = new Point(mRgba.width(), mRgba.height());
+
+		// 取得解析度
+		if(resolutionPoint == null){
+			resolutionPoint = new Point(mRgba.width(), mRgba.height());
+		}
 				
 		// 輪廓辨識
 		if(findContoursFUN) {
@@ -232,125 +236,8 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		if(colorFUN && mIsColorSelected) {
 			setColorFUN(mRgba, mRgba);
 		}
-		      
+		
 		return mRgba;
-	}
-
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		Log.i(TAG, "called onCreateOptionsMenu");
-		
-		// 臉部
-		mItemFace = menu.add("Face");
-		
-		// 輪廓
-		mItemFindContours = menu.add("FindContours");
-		
-		// 顏色
-//		mItemColor = menu.add("Color");
-		
-		// 螢幕解析度
-        mResolutionMenu = menu.addSubMenu("Resolution");
-        mResolutionList = mOpenCvCameraView.getResolutionList();
-        mResolutionMenuItems = new MenuItem[mResolutionList.size()];
-        ListIterator<android.hardware.Camera.Size> resolutionItr = mResolutionList.listIterator();
-        int idx = 0;
-        while(resolutionItr.hasNext()) {
-            android.hardware.Camera.Size element = resolutionItr.next();
-            mResolutionMenuItems[idx] = mResolutionMenu.add(2, idx, Menu.NONE,
-                    Integer.valueOf(element.width).toString() + "x" + Integer.valueOf(element.height).toString());
-            idx++;
-        }
-		return true;
-	}
-
-	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
-		Log.i(TAG, "called onOptionsItemSelected; selected item: " + item);
-		
-		if (item.getGroupId() == 2){
-			int id = item.getItemId();
-            android.hardware.Camera.Size resolution = mResolutionList.get(id);
-            mOpenCvCameraView.setResolution(resolution);
-            resolution = mOpenCvCameraView.getResolution();
-            String caption = Integer.valueOf(resolution.width).toString() + "x" + Integer.valueOf(resolution.height).toString();
-            Toast.makeText(this, caption, Toast.LENGTH_SHORT).show();
-		}
-		
-		// 臉部辨識
-		if (item == mItemFace) {
-			faceFUN = true;
-			if(faceFUN != faceFUNtmp) {
-				faceFUNtmp = faceFUN;
-				Toast.makeText(this, "Face: true", Toast.LENGTH_SHORT).show();
-			} else {
-				faceFUN = false;
-				faceFUNtmp = faceFUN;
-				Toast.makeText(this, "Face: false", Toast.LENGTH_SHORT).show();
-			}
-		}
-		
-		// 輪廓辨識
-		if (item == mItemFindContours) {
-			findContoursFUN = true;
-			if(findContoursFUN != findContoursFUNtmp) {
-				findContoursFUNtmp = findContoursFUN;
-				Toast.makeText(this, "FindContours: true", Toast.LENGTH_SHORT).show();
-			} else {
-				findContoursFUN = false;
-				findContoursFUNtmp = findContoursFUN;
-				Toast.makeText(this, "FindContours: false", Toast.LENGTH_SHORT).show();
-			}
-		}
-		
-		// 顏色辨識
-		if (item == mItemColor) {
-			colorFUN = true;
-			if(colorFUN != colorFUNtmp) {
-				colorFUNtmp = colorFUN;
-				Toast.makeText(this, "colorFUN: true", Toast.LENGTH_SHORT).show();
-			} else {
-				colorFUN = false;
-				colorFUNtmp = findContoursFUN;
-				Toast.makeText(this, "colorFUN: false", Toast.LENGTH_SHORT).show();
-			}
-			
-//			AlertDialog.Builder editDialog = new AlertDialog.Builder(FdActivity.this);
-//			editDialog.setCancelable(true); 
-//			
-//			final SeekBar seekBar = new SeekBar(FdActivity.this);
-//			seekBar.setMax(5);
-//			editDialog.setView(seekBar);
-//			seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-//
-//		        @Override
-//		        public void onStopTrackingTouch(SeekBar seekBar) {
-//		        	Toast.makeText(FdActivity.this, String.valueOf(tmpEdit), Toast.LENGTH_SHORT).show();
-//		        }
-//
-//		        @Override
-//		        public void onStartTrackingTouch(SeekBar seekBar) {
-//
-//		        }
-//
-//	            @Override
-//	            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {                
-//	            	tmpEdit = progress;
-//	            	Core.putText(mRgba, String.valueOf(progress),
-//	       	             new Point(10, resolutionPoint.y - 45), 3, 1, new Scalar(0, 255, 128, 255), 2);
-//	            }
-//		    });
-//
-//			editDialog.setNegativeButton("Exit", new DialogInterface.OnClickListener() {
-//				// do something when the button is clicked
-//				public void onClick(DialogInterface arg0, int arg1) {
-//					//...
-//				}
-//			});
-//			editDialog.show();
-			
-		}
-		return true;
 	}
 	
 	// 臉部辨識
@@ -387,7 +274,7 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 //					Math.abs(facesArray[i].tl().y + facesArray[i].br().y)/2);
 //			Core.putText(mRgba, ""+i, facePutText, 2, 1, new Scalar(0, 255, 128, 255), 1);
 		}
-
+		
 		return mRgba;
 	}
 	
@@ -513,20 +400,137 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		colorMat = new Mat();
 		mRgbaOrg.copyTo(colorMat);
 		
-        if (mIsColorSelected) {
-            mDetector.process(mRgba);
-            List<MatOfPoint> contours = mDetector.getContours();
-            Log.e(TAG, "Contours count: " + contours.size());
-            Imgproc.drawContours(mRgba, contours, -1, CONTOUR_COLOR);
-
-            Mat colorLabel = mRgba.submat(4, 68, 4, 68);
-            colorLabel.setTo(mBlobColorRgba);
-
-            Mat spectrumLabel = mRgba.submat(4, 4 + mSpectrum.rows(), 70, 70 + mSpectrum.cols());
-            mSpectrum.copyTo(spectrumLabel);
-        }
+//        if (mIsColorSelected) {
+//            mDetector.process(mRgba);
+//            List<MatOfPoint> contours = mDetector.getContours();
+//            Log.e(TAG, "Contours count: " + contours.size());
+//            Imgproc.drawContours(mRgba, contours, -1, CONTOUR_COLOR);
+//
+//            Mat colorLabel = mRgba.submat(4, 68, 4, 68);
+//            colorLabel.setTo(mBlobColorRgba);
+//
+//            Mat spectrumLabel = mRgba.submat(4, 4 + mSpectrum.rows(), 70, 70 + mSpectrum.cols());
+//            mSpectrum.copyTo(spectrumLabel);
+//        }    
         
 		return mRgba;
+	}
+	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		Log.i(TAG, "called onCreateOptionsMenu");
+		
+		// 臉部
+		mItemFace = menu.add("Face");
+		
+		// 輪廓
+		mItemFindContours = menu.add("FindContours");
+		
+		// 顏色
+//		mItemColor = menu.add("Color");
+		
+		// 螢幕解析度
+        mResolutionMenu = menu.addSubMenu("Resolution");
+        mResolutionList = mOpenCvCameraView.getResolutionList();
+        mResolutionMenuItems = new MenuItem[mResolutionList.size()];
+        ListIterator<android.hardware.Camera.Size> resolutionItr = mResolutionList.listIterator();
+        int idx = 0;
+        while(resolutionItr.hasNext()) {
+            android.hardware.Camera.Size element = resolutionItr.next();
+            mResolutionMenuItems[idx] = mResolutionMenu.add(2, idx, Menu.NONE,
+                    Integer.valueOf(element.width).toString() + "x" + Integer.valueOf(element.height).toString());
+            idx++;
+        }
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		Log.i(TAG, "called onOptionsItemSelected; selected item: " + item);
+		
+		if (item.getGroupId() == 2){
+			int id = item.getItemId();
+            android.hardware.Camera.Size resolution = mResolutionList.get(id);
+            mOpenCvCameraView.setResolution(resolution);
+            resolution = mOpenCvCameraView.getResolution();
+            String caption = Integer.valueOf(resolution.width).toString() + "x" + Integer.valueOf(resolution.height).toString();
+            Toast.makeText(this, caption, Toast.LENGTH_SHORT).show();
+		}
+		
+		// 臉部辨識
+		if (item == mItemFace) {
+			faceFUN = true;
+			if(faceFUN != faceFUNtmp) {
+				faceFUNtmp = faceFUN;
+				Toast.makeText(this, "Face: true", Toast.LENGTH_SHORT).show();
+			} else {
+				faceFUN = false;
+				faceFUNtmp = faceFUN;
+				Toast.makeText(this, "Face: false", Toast.LENGTH_SHORT).show();
+			}
+		}
+		
+		// 輪廓辨識
+		if (item == mItemFindContours) {
+			findContoursFUN = true;
+			if(findContoursFUN != findContoursFUNtmp) {
+				findContoursFUNtmp = findContoursFUN;
+				Toast.makeText(this, "FindContours: true", Toast.LENGTH_SHORT).show();
+			} else {
+				findContoursFUN = false;
+				findContoursFUNtmp = findContoursFUN;
+				Toast.makeText(this, "FindContours: false", Toast.LENGTH_SHORT).show();
+			}
+		}
+		
+		// 顏色辨識
+		if (item == mItemColor) {
+			colorFUN = true;
+			if(colorFUN != colorFUNtmp) {
+				colorFUNtmp = colorFUN;
+				Toast.makeText(this, "colorFUN: true", Toast.LENGTH_SHORT).show();
+			} else {
+				colorFUN = false;
+				colorFUNtmp = findContoursFUN;
+				Toast.makeText(this, "colorFUN: false", Toast.LENGTH_SHORT).show();
+			}
+			
+//			AlertDialog.Builder editDialog = new AlertDialog.Builder(FdActivity.this);
+//			editDialog.setCancelable(true); 
+//			
+//			final SeekBar seekBar = new SeekBar(FdActivity.this);
+//			seekBar.setMax(5);
+//			editDialog.setView(seekBar);
+//			seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+//
+//		        @Override
+//		        public void onStopTrackingTouch(SeekBar seekBar) {
+//		        	Toast.makeText(FdActivity.this, String.valueOf(tmpEdit), Toast.LENGTH_SHORT).show();
+//		        }
+//
+//		        @Override
+//		        public void onStartTrackingTouch(SeekBar seekBar) {
+//
+//		        }
+//
+//	            @Override
+//	            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {                
+//	            	tmpEdit = progress;
+//	            	Core.putText(mRgba, String.valueOf(progress),
+//	       	             new Point(10, resolutionPoint.y - 45), 3, 1, new Scalar(0, 255, 128, 255), 2);
+//	            }
+//		    });
+//
+//			editDialog.setNegativeButton("Exit", new DialogInterface.OnClickListener() {
+//				// do something when the button is clicked
+//				public void onClick(DialogInterface arg0, int arg1) {
+//					//...
+//				}
+//			});
+//			editDialog.show();
+			
+		}
+		return true;
 	}
 	
 	// 點擊螢幕觸發事件
