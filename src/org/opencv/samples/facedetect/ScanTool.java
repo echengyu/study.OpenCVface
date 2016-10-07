@@ -10,6 +10,9 @@ import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfRect;
+import org.opencv.core.Point;
+import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
@@ -26,6 +29,12 @@ public class ScanTool extends JavaCameraView implements PictureCallback {
     private static final String TAG = "Sample::ScanTool";
     private String mPictureFileName;
     private boolean isFlashLightON = false;
+    
+    // ROI TODO
+    private Rect mROIrect;
+    private Point resolutionPoint;
+    private int cutY0 = 0;
+    private int cutY1 = 0;
 
     public ScanTool(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -141,5 +150,18 @@ public class ScanTool extends JavaCameraView implements PictureCallback {
     // 閃光燈
     public boolean getCameraFlashLight() {
         return isFlashLightON;
+    }
+    
+    // ROI TODO
+    public Mat setROImat(Mat mROImat, float offestY) {
+    	resolutionPoint = new Point(mROImat.width(), mROImat.height());
+    	offestY = (offestY > 1.0f) ? 1.0f : offestY;
+		cutY0 = (int) Math.round((resolutionPoint.y / 2) * (1 - offestY));
+		cutY1 = (int) Math.round((resolutionPoint.y / 2) * (1 + offestY));
+		mROIrect = new Rect(0, cutY0, (int) resolutionPoint.x, cutY1 - cutY0);		
+		Mat mTmp = new Mat();
+		mROImat.submat(mROIrect).copyTo(mTmp);
+		
+		return mTmp;
     }
 }
