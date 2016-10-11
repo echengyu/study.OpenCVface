@@ -464,13 +464,13 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 		mItemFace = menu.add("Face");
 
 		// 輪廓
-		mItemFindContours = menu.add("FindContours");
+//		mItemFindContours = menu.add("FindContours");
 
 		// 顏色
 //		mItemColor = menu.add("Color");
 		
 		// ROI
-		mItemROI = menu.add("ROI");
+//		mItemROI = menu.add("ROI");
 
 		// 閃光燈
 //		mItemCameraFlashLight = menu.add("FlashLight");
