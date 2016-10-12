@@ -153,13 +153,20 @@ public class ScanTool extends JavaCameraView implements PictureCallback {
     }
     
     // ROI TODO
-    public Mat setROImatY(Mat mROImat, float offestY) {
-    	resolutionPoint = new Point(mROImat.width(), mROImat.height());
-    	offestY = (offestY > 1.0f) ? 1.0f : offestY;
-		cutY0 = (int) Math.round((resolutionPoint.y / 2) * (1 - offestY));
-		cutY1 = (int) Math.round((resolutionPoint.y / 2) * (1 + offestY));
-		mROIrect = new Rect(0, cutY0, (int) resolutionPoint.x, cutY1 - cutY0);		
+    public Mat setROImat(Mat mROImat, Point resolution, Point offest, float zoomX, float zoomY) {
+    	
+    	zoomX = (zoomX > 1.0f) ? 1.0f : zoomX;
+    	zoomY = (zoomY > 1.0f) ? 1.0f : zoomY;
+    	
+    	int cutXp0 = (int) Math.round((resolutionPoint.x / 2) * (1 - zoomX) + offest.x);
+    	int cutXp1 = (int) Math.round((resolutionPoint.x / 2) * (1 + zoomX) + offest.x);
+    	int cutYp0 = (int) Math.round((resolutionPoint.y / 2) * (1 - zoomY) + offest.y);
+    	int cutYp1 = (int) Math.round((resolutionPoint.y / 2) * (1 + zoomY) + offest.y);
+    	
+    	Rect mROIrect = new Rect(cutXp0, cutYp0, cutXp1 - cutXp0, cutYp1 - cutYp0);
+    		
 		Mat mTmp = new Mat();
+		
 		mROImat.submat(mROIrect).copyTo(mTmp);
 		
 		return mTmp;
