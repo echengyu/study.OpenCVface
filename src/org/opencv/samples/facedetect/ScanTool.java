@@ -153,22 +153,28 @@ public class ScanTool extends JavaCameraView implements PictureCallback {
     }
     
     // ROI TODO
-    public Mat setROImat(Mat mROImat, Point resolution, Point offest, float zoomX, float zoomY) {
+    public Mat setROImat(Mat mRgba, Mat mGray, Point resolution, Point offest, float zoomX, float zoomY) {
     	
     	zoomX = (zoomX > 1.0f) ? 1.0f : zoomX;
-    	zoomY = (zoomY > 1.0f) ? 1.0f : zoomY;
+    	zoomY = (zoomY > 1.0f) ? 1.0f : zoomY; 	
     	
-    	int cutXp0 = (int) Math.round((resolutionPoint.x / 2) * (1 - zoomX) + offest.x);
-    	int cutXp1 = (int) Math.round((resolutionPoint.x / 2) * (1 + zoomX) + offest.x);
-    	int cutYp0 = (int) Math.round((resolutionPoint.y / 2) * (1 - zoomY) + offest.y);
-    	int cutYp1 = (int) Math.round((resolutionPoint.y / 2) * (1 + zoomY) + offest.y);
+    	int cutXp0 = (int) Math.round((resolution.x / 2) * (1 - zoomX) + offest.x);
+    	int cutXp1 = (int) Math.round((resolution.x / 2) * (1 + zoomX) + offest.x);
+    	int cutYp0 = (int) Math.round((resolution.y / 2) * (1 - zoomY) + offest.y);
+    	int cutYp1 = (int) Math.round((resolution.y / 2) * (1 + zoomY) + offest.y);
     	
     	Rect mROIrect = new Rect(cutXp0, cutYp0, cutXp1 - cutXp0, cutYp1 - cutYp0);
-    		
+    	
+//    	Log.e(TAG, String.valueOf(mROIrect.x+", "+mROIrect.y));
+    	
 		Mat mTmp = new Mat();
+		mGray.submat(mROIrect).copyTo(mTmp);		
+		Imgproc.Canny(mTmp, mTmp, 128, 255, 3, false);
+		ArrayList<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+		Imgproc.drawContours(mGray, contours, -1, new Scalar(255, 255, 0, 255), 1, 8, new Mat(), 1, new Point());
 		
-		mROImat.submat(mROIrect).copyTo(mTmp);
+		mTmp.copyTo(mGray.submat(mROIrect));
 		
-		return mTmp;
+		return mGray;
     }
 }

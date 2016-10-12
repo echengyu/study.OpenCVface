@@ -240,6 +240,7 @@ public class FdActivity extends Activity implements OnTouchListener, CvCameraVie
 			// TODO
 		}
 
+//		return mOpenCvCameraView.setROImat(mRgba, mGray, new Point(mRgba.width(), mRgba.height()), new Point(0, 0), 0.1f, 0.1f);
 		return mRgba;
 	}
 
